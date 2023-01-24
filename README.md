@@ -1,0 +1,1 @@
+# traefik-github-oauth-plugin
