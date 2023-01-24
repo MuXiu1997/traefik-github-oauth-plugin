@@ -1,0 +1,44 @@
+run:
+  modules-download-mode: vendor
+  go: '1.19'
+
+linters:
+  enable:
+    # region - default
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    # endregion - default
+    - gofmt
+    - gofumpt
+    - goimports
+    - cyclop
+    - whitespace
+    - decorder
+    - exportloopref
+    - funlen
+    - gci
+    - goconst
+    - gocritic
+    - gomoddirectives
+    - gosec
+    - grouper
+    - importas
+    - nilnil
+    - nosprintfhostport
+    - unconvert
+    - unparam
+    - usestdlibvars
+
+linters-settings:
+  gofumpt:
+    extra-rules: true
+  cyclop:
+    max-complexity: 20
+
+issues:
+  fix: true
