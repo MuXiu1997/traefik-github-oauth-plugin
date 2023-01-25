@@ -25,10 +25,10 @@ type App struct {
 	Server             *http.Server
 	Engine             *gin.Engine
 	GitHubOAuthConfig  *oauth2.Config
-	AuthRequestManager *cache.Cache
+	AuthRequestManager *AuthRequestManager
 }
 
-func NewApp(config *Config, server *http.Server, engine *gin.Engine, authRequestManager *cache.Cache) *App {
+func NewApp(config *Config, server *http.Server, engine *gin.Engine, authRequestManager *AuthRequestManager) *App {
 	server.Addr = config.ServerAddress
 	server.Handler = engine
 
@@ -59,7 +59,7 @@ func NewDefaultApp() *App {
 			ReadHeaderTimeout: 5 * time.Second,
 		},
 		gin.Default(),
-		cache.New(10*time.Minute, 30*time.Minute),
+		NewAuthRequestManager(cache.New(10*time.Minute, 30*time.Minute)),
 	)
 }
 
