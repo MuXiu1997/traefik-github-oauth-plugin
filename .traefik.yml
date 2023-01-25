@@ -10,7 +10,7 @@ summary: >
   providing a more secure way for users to access protected routes. 
 
 testData:
-  apiBaseUrl: http://example.com
+  apiBaseUrl: http://<traefik-github-oauth-server-host>
   apiSecretKey: optional_secret_key_if_not_on_the_internal_network
   authPath: /_auth
   jwtSecretKey: optional_secret_key
