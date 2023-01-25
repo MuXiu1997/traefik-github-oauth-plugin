@@ -21,7 +21,6 @@ func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 		body := model.RequestGenerateOAuthPageURL{}
 		err := c.BindJSON(&body)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
 
@@ -56,7 +55,6 @@ func redirect(app *server.App) gin.HandlerFunc {
 		query := model.RequestRedirect{}
 		err := c.BindQuery(&query)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
 		authRequestCache, found := app.AuthRequestManager.Get(query.RID)
@@ -66,14 +64,7 @@ func redirect(app *server.App) gin.HandlerFunc {
 		}
 		authRequest := authRequestCache.(*model.AuthRequest)
 
-		token, err := app.GitHubOAuthConfig.Exchange(context.Background(), query.Code)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-		gitHubApiHttpClient := app.GitHubOAuthConfig.Client(c.Request.Context(), token)
-		gitHubApiClient := github.NewClient(gitHubApiHttpClient)
-		user, _, err := gitHubApiClient.Users.Get(c.Request.Context(), "")
+		user, err := oAuthCodeToUser(c.Request.Context(), app.GitHubOAuthConfig, query.Code)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
@@ -95,7 +86,6 @@ func getAuthResult(app *server.App) gin.HandlerFunc {
 		query := model.RequestGetAuthResult{}
 		err := c.BindQuery(&query)
 		if err != nil {
-			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
 		authRequestCache, found := app.AuthRequestManager.Get(query.RID)
@@ -115,6 +105,20 @@ func getAuthResult(app *server.App) gin.HandlerFunc {
 			},
 		)
 	}
+}
+
+func oAuthCodeToUser(ctx context.Context, oAuthConfig *oauth2.Config, code string) (*github.User, error) {
+	token, err := oAuthConfig.Exchange(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+	gitHubApiHttpClient := oAuthConfig.Client(ctx, token)
+	gitHubApiClient := github.NewClient(gitHubApiHttpClient)
+	user, _, err := gitHubApiClient.Users.Get(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func buildRedirectURI(apiBaseUrl, rid string) (string, error) {

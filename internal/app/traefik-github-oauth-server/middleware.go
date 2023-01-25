@@ -8,6 +8,7 @@ import (
 	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
 )
 
+// NewApiSecretKeyMiddleware returns a middleware that checks the api secret key.
 func NewApiSecretKeyMiddleware(apiSecretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(apiSecretKey) == 0 {
@@ -18,5 +19,6 @@ func NewApiSecretKeyMiddleware(apiSecretKey string) gin.HandlerFunc {
 		if reqSecretKey != fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, apiSecretKey) {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
+		c.Next()
 	}
 }
