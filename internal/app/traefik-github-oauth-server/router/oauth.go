@@ -118,13 +118,13 @@ func getAuthResult(app *server.App) gin.HandlerFunc {
 }
 
 func buildRedirectURI(apiBaseUrl, rid string) (string, error) {
-	oAuthPageURL, err := url.Parse(apiBaseUrl)
+	redirectURI, err := url.Parse(apiBaseUrl)
 	if err != nil {
 		return "", fmt.Errorf("invalid api base url in server config: %w", err)
 	}
-	oAuthPageURL = oAuthPageURL.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_REDIRECT)
-	redirectURLQuery := oAuthPageURL.Query()
+	redirectURI = redirectURI.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_REDIRECT)
+	redirectURLQuery := redirectURI.Query()
 	redirectURLQuery.Set(constant.QUERY_KEY_REQUEST_ID, rid)
-	oAuthPageURL.RawQuery = redirectURLQuery.Encode()
-	return oAuthPageURL.String(), nil
+	redirectURI.RawQuery = redirectURLQuery.Encode()
+	return redirectURI.String(), nil
 }
