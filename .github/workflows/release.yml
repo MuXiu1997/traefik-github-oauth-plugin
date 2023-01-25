@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-please:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release
+        id: release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: go
+          package-name: traefik-github-oauth-plugin
+
+      - name: Setup Go
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Checkout
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ steps.release.outputs.tag_name }}
+
+      - name: Build
+        if: ${{ steps.release.outputs.release_created }}
+        run: make
+
+      - name: Upload Release Assets
+        if: ${{ steps.release.outputs.release_created }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} dist/*
+
+      # region Docker
+      - name: Set up Docker Buildx
+        if: ${{ steps.release.outputs.release_created }}
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        if: ${{ steps.release.outputs.release_created }}
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build And Push Docker Images
+        if: ${{ steps.release.outputs.release_created }}
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            muxiu1997/traefik-github-oauth-server:${{ steps.release.outputs.tag_name }}
+            muxiu1997/traefik-github-oauth-server:latest
+      # endregion Docker
