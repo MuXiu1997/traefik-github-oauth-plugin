@@ -11,7 +11,6 @@ import (
 	server "github.com/muxiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server"
 	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
 	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
-	"github.com/rs/xid"
 	"github.com/spf13/cast"
 	"golang.org/x/oauth2"
 )
@@ -24,8 +23,7 @@ func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 			return
 		}
 
-		rid := xid.New().String()
-		app.AuthRequestManager.SetDefault(rid, &model.AuthRequest{
+		rid := app.AuthRequestManager.Insert(&model.AuthRequest{
 			RedirectURI: body.RedirectURI,
 			AuthURL:     body.AuthURL,
 		})
@@ -57,22 +55,27 @@ func redirect(app *server.App) gin.HandlerFunc {
 		if err != nil {
 			return
 		}
-		authRequestCache, found := app.AuthRequestManager.Get(query.RID)
+
+		authRequest, found := app.AuthRequestManager.Get(query.RID)
 		if !found {
 			c.String(http.StatusBadRequest, "invalid rid")
 			return
 		}
-		authRequest := authRequestCache.(*model.AuthRequest)
 
 		user, err := oAuthCodeToUser(c.Request.Context(), app.GitHubOAuthConfig, query.Code)
 		if err != nil {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
+
 		authRequest.GitHubUserID = cast.ToString(user.GetID())
 		authRequest.GitHubUserLogin = user.GetLogin()
 
-		authURL, _ := url.Parse(authRequest.AuthURL)
+		authURL, err := url.Parse(authRequest.AuthURL)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "invalid auth url: %s", authRequest.AuthURL)
+			return
+		}
 		authURLQuery := authURL.Query()
 		authURLQuery.Set(constant.QUERY_KEY_REQUEST_ID, query.RID)
 		authURL.RawQuery = authURLQuery.Encode()
@@ -88,13 +91,12 @@ func getAuthResult(app *server.App) gin.HandlerFunc {
 		if err != nil {
 			return
 		}
-		authRequestCache, found := app.AuthRequestManager.Get(query.RID)
+
+		authRequest, found := app.AuthRequestManager.Pop(query.RID)
 		if !found {
 			c.String(http.StatusBadRequest, "invalid rid")
 			return
 		}
-		defer app.AuthRequestManager.Delete(query.RID)
-		authRequest := authRequestCache.(*model.AuthRequest)
 
 		c.JSON(
 			http.StatusOK,
