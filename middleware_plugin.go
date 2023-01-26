@@ -19,7 +19,7 @@ const (
 	DefaultConfigAuthPath = "/_auth"
 )
 
-// Config the plugin configuration.
+// Config the middleware configuration.
 type Config struct {
 	ApiBaseUrl   string          `json:"api_base_url,omitempty"`
 	ApiSecretKey string          `json:"api_secret_key,omitempty"`
@@ -28,7 +28,7 @@ type Config struct {
 	Whitelist    ConfigWhitelist `json:"whitelist,omitempty"`
 }
 
-// ConfigWhitelist the plugin configuration whitelist.
+// ConfigWhitelist the middleware configuration whitelist.
 type ConfigWhitelist struct {
 	// Ids the GitHub user id list.
 	Ids []string `json:"ids,omitempty"`
@@ -36,7 +36,7 @@ type ConfigWhitelist struct {
 	Logins []string `json:"logins,omitempty"`
 }
 
-// CreateConfig creates the default plugin configuration.
+// CreateConfig creates the default middleware configuration.
 func CreateConfig() *Config {
 	return &Config{
 		ApiBaseUrl:   "",
@@ -50,8 +50,8 @@ func CreateConfig() *Config {
 	}
 }
 
-// TraefikGithubOauthPlugin the plugin.
-type TraefikGithubOauthPlugin struct {
+// TraefikGithubOauthMiddleware the middleware.
+type TraefikGithubOauthMiddleware struct {
 	ctx  context.Context
 	next http.Handler
 	name string
@@ -64,15 +64,15 @@ type TraefikGithubOauthPlugin struct {
 	whitelistLoginSet *strset.Set
 }
 
-var _ http.Handler = (*TraefikGithubOauthPlugin)(nil)
+var _ http.Handler = (*TraefikGithubOauthMiddleware)(nil)
 
-// New creates a new TraefikGithubOauthPlugin.
+// New creates a new TraefikGithubOauthMiddleware.
 func New(ctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	authPath := config.AuthPath
 	if !strings.HasPrefix(authPath, "/") {
 		authPath = "/" + authPath
 	}
-	return &TraefikGithubOauthPlugin{
+	return &TraefikGithubOauthMiddleware{
 		ctx:  ctx,
 		next: next,
 		name: name,
@@ -87,7 +87,7 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 }
 
 // ServeHTTP implements http.Handler.
-func (p *TraefikGithubOauthPlugin) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (p *TraefikGithubOauthMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == p.authPath {
 		p.handleAuthRequest(rw, req)
 		return
@@ -96,7 +96,7 @@ func (p *TraefikGithubOauthPlugin) ServeHTTP(rw http.ResponseWriter, req *http.R
 }
 
 // handleRequest
-func (p *TraefikGithubOauthPlugin) handleRequest(rw http.ResponseWriter, req *http.Request) {
+func (p *TraefikGithubOauthMiddleware) handleRequest(rw http.ResponseWriter, req *http.Request) {
 	jwtCookie, err := req.Cookie(constant.COOKIE_NAME_JWT)
 	if err != nil {
 		p.redirectToOAuthPage(rw, req)
@@ -115,7 +115,7 @@ func (p *TraefikGithubOauthPlugin) handleRequest(rw http.ResponseWriter, req *ht
 }
 
 // handleAuthRequest
-func (p *TraefikGithubOauthPlugin) handleAuthRequest(rw http.ResponseWriter, req *http.Request) {
+func (p *TraefikGithubOauthMiddleware) handleAuthRequest(rw http.ResponseWriter, req *http.Request) {
 	rid := req.URL.Query().Get(constant.QUERY_KEY_REQUEST_ID)
 	result, err := p.getAuthResult(rid)
 	if err != nil {
@@ -135,7 +135,7 @@ func (p *TraefikGithubOauthPlugin) handleAuthRequest(rw http.ResponseWriter, req
 	http.Redirect(rw, req, result.RedirectURI, http.StatusFound)
 }
 
-func (p *TraefikGithubOauthPlugin) redirectToOAuthPage(rw http.ResponseWriter, req *http.Request) {
+func (p *TraefikGithubOauthMiddleware) redirectToOAuthPage(rw http.ResponseWriter, req *http.Request) {
 	oAuthPageURL, err := p.generateOAuthPageURL(getRawRequestUrl(req), p.getAuthURL(req))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -144,7 +144,7 @@ func (p *TraefikGithubOauthPlugin) redirectToOAuthPage(rw http.ResponseWriter, r
 	http.Redirect(rw, req, oAuthPageURL, http.StatusFound)
 }
 
-func (p *TraefikGithubOauthPlugin) generateOAuthPageURL(redirectURI, authURL string) (string, error) {
+func (p *TraefikGithubOauthMiddleware) generateOAuthPageURL(redirectURI, authURL string) (string, error) {
 	reqBody := model.RequestGenerateOAuthPageURL{
 		RedirectURI: redirectURI,
 		AuthURL:     authURL,
@@ -165,7 +165,7 @@ func (p *TraefikGithubOauthPlugin) generateOAuthPageURL(redirectURI, authURL str
 	return respBody.OAuthPageURL, nil
 }
 
-func (p *TraefikGithubOauthPlugin) getAuthResult(rid string) (*model.ResponseGetAuthResult, error) {
+func (p *TraefikGithubOauthMiddleware) getAuthResult(rid string) (*model.ResponseGetAuthResult, error) {
 	req := sling.New().Base(p.apiBaseUrl).Get(constant.ROUTER_GROUP_PATH_OAUTH + "/" + constant.ROUTER_PATH_OAUTH_RESULT)
 	if 0 < len(p.apiSecretKey) {
 		req.Set(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
@@ -192,7 +192,7 @@ func (p *TraefikGithubOauthPlugin) getAuthResult(rid string) (*model.ResponseGet
 	return &respBody, nil
 }
 
-func (p *TraefikGithubOauthPlugin) getAuthURL(originalReq *http.Request) string {
+func (p *TraefikGithubOauthMiddleware) getAuthURL(originalReq *http.Request) string {
 	var builder strings.Builder
 	scheme := "http"
 	if originalReq.TLS != nil {
