@@ -1,7 +1,7 @@
 package traefik_github_oauth_server
 
 import (
-	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
+	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
 	"github.com/patrickmn/go-cache"
 	"github.com/rs/xid"
 )

@@ -1,4 +1,4 @@
-module github.com/muxiu1997/traefik-github-oauth-plugin
+module github.com/MuXiu1997/traefik-github-oauth-plugin
 
 go 1.19
 

@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/dghubble/sling"
-	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
-	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
-	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/pkg/jwt"
+	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
+	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
+	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/pkg/jwt"
 	"github.com/scylladb/go-set/strset"
 )
 
