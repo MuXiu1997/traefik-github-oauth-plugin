@@ -10,12 +10,12 @@ type ResponseGenerateOAuthPageURL struct {
 }
 
 type RequestRedirect struct {
-	RID  string `form:"rid" binding:"required"`
-	Code string `form:"code" binding:"required"`
+	RID  string `form:"rid" url:"rid" binding:"required"`
+	Code string `form:"code" url:"code" binding:"required"`
 }
 
 type RequestGetAuthResult struct {
-	RID string `form:"rid" binding:"required"`
+	RID string `form:"rid" url:"rid" binding:"required"`
 }
 
 type ResponseGetAuthResult struct {
