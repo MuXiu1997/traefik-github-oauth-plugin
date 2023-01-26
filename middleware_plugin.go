@@ -1,17 +1,14 @@
 package traefik_github_oauth_plugin
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
+	"github.com/dghubble/sling"
 	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
 	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
 	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/pkg/jwt"
@@ -139,7 +136,7 @@ func (p *TraefikGithubOauthPlugin) handleAuthRequest(rw http.ResponseWriter, req
 }
 
 func (p *TraefikGithubOauthPlugin) redirectToOAuthPage(rw http.ResponseWriter, req *http.Request) {
-	oAuthPageURL, err := p.generateOAuthPageURL(req)
+	oAuthPageURL, err := p.generateOAuthPageURL(getRawRequestUrl(req), p.getAuthURL(req))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -147,91 +144,52 @@ func (p *TraefikGithubOauthPlugin) redirectToOAuthPage(rw http.ResponseWriter, r
 	http.Redirect(rw, req, oAuthPageURL, http.StatusFound)
 }
 
-func (p *TraefikGithubOauthPlugin) generateOAuthPageURL(originalReq *http.Request) (string, error) {
-	var request *http.Request
-	{
-		requestURL, err := url.Parse(p.apiBaseUrl)
-		if err != nil {
-			return "", err
-		}
-		requestURL = requestURL.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_PAGE_URL)
-		request, err := http.NewRequest(http.MethodPost, requestURL.String(), nil)
-		if err != nil {
-			return "", err
-		}
-		request.Header.Add("Content-Type", "application/json")
-		if 0 < len(p.apiSecretKey) {
-			request.Header.Add(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
-		}
-		requestBody, err := json.Marshal(model.RequestGenerateOAuthPageURL{
-			RedirectURI: getRawRequestUrl(originalReq),
-			AuthURL:     p.getAuthURL(originalReq),
-		})
-		if err != nil {
-			return "", err
-		}
-		request.Body = io.NopCloser(bytes.NewReader(requestBody))
+func (p *TraefikGithubOauthPlugin) generateOAuthPageURL(redirectURI, authURL string) (string, error) {
+	reqBody := model.RequestGenerateOAuthPageURL{
+		RedirectURI: redirectURI,
+		AuthURL:     authURL,
 	}
-
-	result := &model.ResponseGenerateOAuthPageURL{}
-	resp, err := http.DefaultClient.Do(request)
+	req := sling.New().Base(p.apiBaseUrl).Post(constant.ROUTER_GROUP_PATH_OAUTH + "/" + constant.ROUTER_PATH_OAUTH_PAGE_URL)
+	if 0 < len(p.apiSecretKey) {
+		req.Set(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
+	}
+	var respBody model.ResponseGenerateOAuthPageURL
+	var errRespBody model.ResponseError
+	_, err := req.BodyJSON(reqBody).Receive(&respBody, &errRespBody)
 	if err != nil {
 		return "", err
 	}
-	defer func(b io.ReadCloser) {
-		_ = b.Close()
-	}(resp.Body)
-	if resp.StatusCode == http.StatusUnauthorized {
-		return "", fmt.Errorf("invalid api secret key")
+	if 0 < len(errRespBody.Message) {
+		return "", fmt.Errorf("rpc failed, message: %s", errRespBody.Message)
 	}
-	if resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("generateOAuthPageURL failed, status code: %d", resp.StatusCode)
-	}
-	if err = json.NewDecoder(resp.Body).Decode(result); err != nil {
-		return "", err
-	}
-	return result.OAuthPageURL, nil
+	return respBody.OAuthPageURL, nil
 }
 
 func (p *TraefikGithubOauthPlugin) getAuthResult(rid string) (*model.ResponseGetAuthResult, error) {
-	var request *http.Request
-	{
-		requestURL, err := url.Parse(p.apiBaseUrl)
-		if err != nil {
-			return nil, err
-		}
-		requestURL = requestURL.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_RESULT)
-		requestURLQuery := requestURL.Query()
-		requestURLQuery.Set(constant.QUERY_KEY_REQUEST_ID, rid)
-		requestURL.RawQuery = requestURLQuery.Encode()
-		request, err := http.NewRequest(http.MethodGet, requestURL.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-		if 0 < len(p.apiSecretKey) {
-			request.Header.Add(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
-		}
+	req := sling.New().Base(p.apiBaseUrl).Get(constant.ROUTER_GROUP_PATH_OAUTH + "/" + constant.ROUTER_PATH_OAUTH_RESULT)
+	if 0 < len(p.apiSecretKey) {
+		req.Set(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
 	}
 
-	resp, err := http.DefaultClient.Do(request)
+	// req.QueryStruct seems to panic in yaegi
+	httpRequest, err := req.Request()
 	if err != nil {
 		return nil, err
 	}
-	defer func(b io.ReadCloser) {
-		_ = b.Close()
-	}(resp.Body)
-	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, fmt.Errorf("invalid api secret key")
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("getAuthResult failed, status code: %d", resp.StatusCode)
-	}
-	result := &model.ResponseGetAuthResult{}
-	err = json.NewDecoder(resp.Body).Decode(result)
+	q := httpRequest.URL.Query()
+	q.Add(constant.QUERY_KEY_REQUEST_ID, rid)
+	httpRequest.URL.RawQuery = q.Encode()
+
+	var respBody model.ResponseGetAuthResult
+	var errRespBody model.ResponseError
+	_, err = req.Do(httpRequest, &respBody, &errRespBody)
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	if 0 < len(errRespBody.Message) {
+		return nil, fmt.Errorf("rpc failed, message: %s", errRespBody.Message)
+	}
+	return &respBody, nil
 }
 
 func (p *TraefikGithubOauthPlugin) getAuthURL(originalReq *http.Request) string {
