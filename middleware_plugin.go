@@ -148,27 +148,30 @@ func (p *TraefikGithubOauthPlugin) redirectToOAuthPage(rw http.ResponseWriter, r
 }
 
 func (p *TraefikGithubOauthPlugin) generateOAuthPageURL(originalReq *http.Request) (string, error) {
-	requestURL, err := url.Parse(p.apiBaseUrl)
-	if err != nil {
-		return "", err
+	var request *http.Request
+	{
+		requestURL, err := url.Parse(p.apiBaseUrl)
+		if err != nil {
+			return "", err
+		}
+		requestURL = requestURL.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_PAGE_URL)
+		request, err := http.NewRequest(http.MethodPost, requestURL.String(), nil)
+		if err != nil {
+			return "", err
+		}
+		request.Header.Add("Content-Type", "application/json")
+		if 0 < len(p.apiSecretKey) {
+			request.Header.Add(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
+		}
+		requestBody, err := json.Marshal(model.RequestGenerateOAuthPageURL{
+			RedirectURI: getRawRequestUrl(originalReq),
+			AuthURL:     p.getAuthURL(originalReq),
+		})
+		if err != nil {
+			return "", err
+		}
+		request.Body = io.NopCloser(bytes.NewReader(requestBody))
 	}
-	requestURL = requestURL.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_PAGE_URL)
-	request, err := http.NewRequest(http.MethodPost, requestURL.String(), nil)
-	if err != nil {
-		return "", err
-	}
-	request.Header.Add("Content-Type", "application/json")
-	if 0 < len(p.apiSecretKey) {
-		request.Header.Add(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
-	}
-	requestBody, err := json.Marshal(model.RequestGenerateOAuthPageURL{
-		RedirectURI: getRawRequestUrl(originalReq),
-		AuthURL:     p.getAuthURL(originalReq),
-	})
-	if err != nil {
-		return "", err
-	}
-	request.Body = io.NopCloser(bytes.NewReader(requestBody))
 
 	result := &model.ResponseGenerateOAuthPageURL{}
 	resp, err := http.DefaultClient.Do(request)
@@ -178,6 +181,9 @@ func (p *TraefikGithubOauthPlugin) generateOAuthPageURL(originalReq *http.Reques
 	defer func(b io.ReadCloser) {
 		_ = b.Close()
 	}(resp.Body)
+	if resp.StatusCode == http.StatusUnauthorized {
+		return "", fmt.Errorf("invalid api secret key")
+	}
 	if resp.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("generateOAuthPageURL failed, status code: %d", resp.StatusCode)
 	}
@@ -188,21 +194,25 @@ func (p *TraefikGithubOauthPlugin) generateOAuthPageURL(originalReq *http.Reques
 }
 
 func (p *TraefikGithubOauthPlugin) getAuthResult(rid string) (*model.ResponseGetAuthResult, error) {
-	requestURL, err := url.Parse(p.apiBaseUrl)
-	if err != nil {
-		return nil, err
+	var request *http.Request
+	{
+		requestURL, err := url.Parse(p.apiBaseUrl)
+		if err != nil {
+			return nil, err
+		}
+		requestURL = requestURL.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_RESULT)
+		requestURLQuery := requestURL.Query()
+		requestURLQuery.Set(constant.QUERY_KEY_REQUEST_ID, rid)
+		requestURL.RawQuery = requestURLQuery.Encode()
+		request, err := http.NewRequest(http.MethodGet, requestURL.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+		if 0 < len(p.apiSecretKey) {
+			request.Header.Add(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
+		}
 	}
-	requestURL = requestURL.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_RESULT)
-	requestURLQuery := requestURL.Query()
-	requestURLQuery.Set(constant.QUERY_KEY_REQUEST_ID, rid)
-	requestURL.RawQuery = requestURLQuery.Encode()
-	request, err := http.NewRequest(http.MethodGet, requestURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	if 0 < len(p.apiSecretKey) {
-		request.Header.Add(constant.HTTP_HEADER_AUTHORIZATION, fmt.Sprintf("%s %s", constant.AUTHORIZATION_PREFIX_TOKEN, p.apiSecretKey))
-	}
+
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return nil, err
@@ -210,6 +220,9 @@ func (p *TraefikGithubOauthPlugin) getAuthResult(rid string) (*model.ResponseGet
 	defer func(b io.ReadCloser) {
 		_ = b.Close()
 	}(resp.Body)
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("invalid api secret key")
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("getAuthResult failed, status code: %d", resp.StatusCode)
 	}
