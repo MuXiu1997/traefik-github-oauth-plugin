@@ -3,8 +3,8 @@ package router
 import (
 	"net/http"
 
+	server "github.com/MuXiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server"
 	"github.com/gin-gonic/gin"
-	server "github.com/muxiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server"
 )
 
 func healthCheck(_ *server.App) gin.HandlerFunc {
