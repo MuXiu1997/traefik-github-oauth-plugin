@@ -1,12 +1,19 @@
 package router
 
 import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
 	server "github.com/muxiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server"
 	"github.com/muxiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
 )
 
 func RegisterRoutes(app *server.App) {
 	apiSecretKeyMiddleware := server.NewApiSecretKeyMiddleware(app.Config.ApiSecretKey)
+
+	app.Engine.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "Traefik GitHub OAuth Server")
+	})
 
 	app.Engine.GET(constant.ROUTER_PATH_OAUTH_HEALTH, healthCheck(app))
 

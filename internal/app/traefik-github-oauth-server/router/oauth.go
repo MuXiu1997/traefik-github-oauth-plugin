@@ -15,11 +15,20 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var (
+	ErrInvalidApiBaseURL = fmt.Errorf("invalid api base url")
+	ErrInvalidRID        = fmt.Errorf("invalid rid")
+	ErrInvalidAuthURL    = fmt.Errorf("invalid auth url")
+)
+
 func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body := model.RequestGenerateOAuthPageURL{}
-		err := c.BindJSON(&body)
+		err := c.ShouldBindJSON(&body)
 		if err != nil {
+			c.JSON(http.StatusBadRequest, model.ResponseError{
+				Message: fmt.Sprintf("invalid request: %s", err.Error()),
+			})
 			return
 		}
 
@@ -30,7 +39,9 @@ func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 
 		redirectURI, err := buildRedirectURI(app.Config.ApiBaseURL, rid)
 		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
+			c.JSON(http.StatusInternalServerError, model.ResponseError{
+				Message: fmt.Sprintf("[server]%s: %s", err.Error(), app.Config.ApiBaseURL),
+			})
 			return
 		}
 
@@ -58,7 +69,7 @@ func redirect(app *server.App) gin.HandlerFunc {
 
 		authRequest, found := app.AuthRequestManager.Get(query.RID)
 		if !found {
-			c.String(http.StatusBadRequest, "invalid rid")
+			c.String(http.StatusBadRequest, ErrInvalidRID.Error())
 			return
 		}
 
@@ -73,7 +84,7 @@ func redirect(app *server.App) gin.HandlerFunc {
 
 		authURL, err := url.Parse(authRequest.AuthURL)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "invalid auth url: %s", authRequest.AuthURL)
+			c.String(http.StatusInternalServerError, "%s: %s", ErrInvalidAuthURL.Error(), authRequest.AuthURL)
 			return
 		}
 		authURLQuery := authURL.Query()
@@ -87,14 +98,19 @@ func redirect(app *server.App) gin.HandlerFunc {
 func getAuthResult(app *server.App) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := model.RequestGetAuthResult{}
-		err := c.BindQuery(&query)
+		err := c.ShouldBindQuery(&query)
 		if err != nil {
+			c.JSON(http.StatusBadRequest, model.ResponseError{
+				Message: fmt.Sprintf("invalid request: %s", err.Error()),
+			})
 			return
 		}
 
 		authRequest, found := app.AuthRequestManager.Pop(query.RID)
 		if !found {
-			c.String(http.StatusBadRequest, "invalid rid")
+			c.JSON(http.StatusBadRequest, model.ResponseError{
+				Message: ErrInvalidRID.Error(),
+			})
 			return
 		}
 
@@ -126,7 +142,7 @@ func oAuthCodeToUser(ctx context.Context, oAuthConfig *oauth2.Config, code strin
 func buildRedirectURI(apiBaseUrl, rid string) (string, error) {
 	redirectURI, err := url.Parse(apiBaseUrl)
 	if err != nil {
-		return "", fmt.Errorf("invalid api base url in server config: %w", err)
+		return "", ErrInvalidApiBaseURL
 	}
 	redirectURI = redirectURI.JoinPath(constant.ROUTER_GROUP_PATH_OAUTH, constant.ROUTER_PATH_OAUTH_REDIRECT)
 	redirectURLQuery := redirectURI.Query()

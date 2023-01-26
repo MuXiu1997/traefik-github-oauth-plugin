@@ -24,6 +24,10 @@ type ResponseGetAuthResult struct {
 	GitHubUserLogin string `json:"github_user_login"`
 }
 
+type ResponseError struct {
+	Message string `json:"msg"`
+}
+
 type AuthRequest struct {
 	RedirectURI     string `json:"redirect_uri"`
 	AuthURL         string `json:"auth_url"`
