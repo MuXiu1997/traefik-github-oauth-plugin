@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dghubble/sling"
 	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
 	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
 	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/pkg/jwt"
+	"github.com/dghubble/sling"
 	"github.com/scylladb/go-set/strset"
 )
 
@@ -97,14 +97,12 @@ func (p *TraefikGithubOauthMiddleware) ServeHTTP(rw http.ResponseWriter, req *ht
 
 // handleRequest
 func (p *TraefikGithubOauthMiddleware) handleRequest(rw http.ResponseWriter, req *http.Request) {
-	jwtCookie, err := req.Cookie(constant.COOKIE_NAME_JWT)
+	user, err := p.getGitHubUserFromCookie(req)
 	if err != nil {
-		p.redirectToOAuthPage(rw, req)
-		return
-	}
-	user, err := jwt.ParseTokenString(jwtCookie.Value, p.jwtSecretKey)
-	if err != nil {
-		p.redirectToOAuthPage(rw, req)
+		if req.Method == http.MethodGet {
+			p.redirectToOAuthPage(rw, req)
+		}
+		http.Error(rw, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	if !p.whitelistIdSet.Has(user.Id) && !p.whitelistLoginSet.Has(user.Login) {
@@ -190,6 +188,14 @@ func (p *TraefikGithubOauthMiddleware) getAuthResult(rid string) (*model.Respons
 		return nil, fmt.Errorf("rpc failed, message: %s", errRespBody.Message)
 	}
 	return &respBody, nil
+}
+
+func (p *TraefikGithubOauthMiddleware) getGitHubUserFromCookie(req *http.Request) (*jwt.PayloadUser, error) {
+	jwtCookie, err := req.Cookie(constant.COOKIE_NAME_JWT)
+	if err != nil {
+		return nil, err
+	}
+	return jwt.ParseTokenString(jwtCookie.Value, p.jwtSecretKey)
 }
 
 func (p *TraefikGithubOauthMiddleware) getAuthURL(originalReq *http.Request) string {
