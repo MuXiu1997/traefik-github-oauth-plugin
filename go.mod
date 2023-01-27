@@ -10,6 +10,7 @@ require (
 	github.com/google/go-github/v49 v49.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rs/xid v1.4.0
+	github.com/rs/zerolog v1.29.0
 	github.com/scylladb/go-set v1.0.2
 	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.8.1
@@ -27,6 +28,7 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect

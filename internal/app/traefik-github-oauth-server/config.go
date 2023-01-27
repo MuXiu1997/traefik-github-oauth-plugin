@@ -11,6 +11,7 @@ type Config struct {
 	ApiSecretKey            string
 	ServerAddress           string
 	DebugMode               bool
+	LogLevel                string
 	GitHubOAuthClientID     string
 	GitHubOAuthClientSecret string
 }
@@ -21,6 +22,7 @@ func NewConfigFromEnv() *Config {
 		ApiSecretKey:            os.Getenv("API_SECRET_KEY"),
 		ServerAddress:           os.Getenv("SERVER_ADDRESS"),
 		DebugMode:               cast.ToBool(os.Getenv("DEBUG_MODE")),
+		LogLevel:                os.Getenv("LOG_LEVEL"),
 		GitHubOAuthClientID:     os.Getenv("GITHUB_OAUTH_CLIENT_ID"),
 		GitHubOAuthClientSecret: os.Getenv("GITHUB_OAUTH_CLIENT_SECRET"),
 	}

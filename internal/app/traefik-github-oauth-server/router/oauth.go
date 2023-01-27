@@ -26,6 +26,7 @@ func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 		body := model.RequestGenerateOAuthPageURL{}
 		err := c.ShouldBindJSON(&body)
 		if err != nil {
+			app.Logger.Debug().Err(err).Msg("invalid request")
 			c.JSON(http.StatusBadRequest, model.ResponseError{
 				Message: fmt.Sprintf("invalid request: %s", err.Error()),
 			})
@@ -39,6 +40,13 @@ func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 
 		redirectURI, err := buildRedirectURI(app.Config.ApiBaseURL, rid)
 		if err != nil {
+			app.Logger.Error().
+				Caller().
+				Stack().
+				Err(err).
+				Str("rid", rid).
+				Str("api_base_url", app.Config.ApiBaseURL).
+				Msg("failed to build redirect uri")
 			c.JSON(http.StatusInternalServerError, model.ResponseError{
 				Message: fmt.Sprintf("[server]%s: %s", err.Error(), app.Config.ApiBaseURL),
 			})
@@ -64,17 +72,27 @@ func redirect(app *server.App) gin.HandlerFunc {
 		query := model.RequestRedirect{}
 		err := c.BindQuery(&query)
 		if err != nil {
+			app.Logger.Debug().Err(err).Msg("invalid request")
 			return
 		}
 
 		authRequest, found := app.AuthRequestManager.Get(query.RID)
 		if !found {
+			app.Logger.Debug().Str("rid", query.RID).Msg("invalid rid")
 			c.String(http.StatusBadRequest, ErrInvalidRID.Error())
 			return
 		}
 
 		user, err := oAuthCodeToUser(c.Request.Context(), app.GitHubOAuthConfig, query.Code)
 		if err != nil {
+			app.Logger.Error().
+				Caller().
+				Stack().
+				Str("rid", query.RID).
+				Str("redirect_uri", authRequest.RedirectURI).
+				Str("auth_url", authRequest.AuthURL).
+				Err(err).
+				Msg("failed to get GitHub user")
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -84,6 +102,11 @@ func redirect(app *server.App) gin.HandlerFunc {
 
 		authURL, err := url.Parse(authRequest.AuthURL)
 		if err != nil {
+			app.Logger.Warn().
+				Err(err).
+				Str("rid", query.RID).
+				Str("auth_url", authRequest.AuthURL).
+				Msg("invalid auth url")
 			c.String(http.StatusInternalServerError, "%s: %s", ErrInvalidAuthURL.Error(), authRequest.AuthURL)
 			return
 		}
@@ -100,6 +123,7 @@ func getAuthResult(app *server.App) gin.HandlerFunc {
 		query := model.RequestGetAuthResult{}
 		err := c.ShouldBindQuery(&query)
 		if err != nil {
+			app.Logger.Debug().Err(err).Msg("invalid request")
 			c.JSON(http.StatusBadRequest, model.ResponseError{
 				Message: fmt.Sprintf("invalid request: %s", err.Error()),
 			})
@@ -108,6 +132,7 @@ func getAuthResult(app *server.App) gin.HandlerFunc {
 
 		authRequest, found := app.AuthRequestManager.Pop(query.RID)
 		if !found {
+			app.Logger.Debug().Str("rid", query.RID).Msg("invalid rid")
 			c.JSON(http.StatusBadRequest, model.ResponseError{
 				Message: ErrInvalidRID.Error(),
 			})
