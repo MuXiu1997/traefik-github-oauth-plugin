@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.1.1...v0.2.0) (2023-01-27)
+
+
+### Features
+
+* **middleware:** add log ([789e4cf](https://github.com/MuXiu1997/traefik-github-oauth-plugin/commit/789e4cf0209aa13cd1aff5302a679686e63fcf29))
+* **server:** add log ([48cf8ea](https://github.com/MuXiu1997/traefik-github-oauth-plugin/commit/48cf8ea367d4c033918c2a4c2ca15148da1b32a8))
+
+
+### Bug Fixes
+
+* **middleware:** redirect only on get requests ([61af42c](https://github.com/MuXiu1997/traefik-github-oauth-plugin/commit/61af42ceb3917f44a0ef0aee5c2678fac670e164))
+
 ## 0.1.1 (2023-01-26)
 
 
