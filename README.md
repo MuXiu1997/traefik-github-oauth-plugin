@@ -70,6 +70,9 @@ providing a more secure way for users to access protected routes.
   authPath: /_auth
   # optional jwt secret key, if not set, the plugin will generate a random key
   jwtSecretKey: optional_secret_key
+  # The log level, defaults to info 
+  # Available values: debug, info, warn, error
+  logLevel: info
   # whitelist
   whitelist:
     # The list of GitHub user ids that in the whitelist

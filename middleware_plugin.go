@@ -6,11 +6,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/app/traefik-github-oauth-server/model"
 	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/pkg/constant"
 	"github.com/MuXiu1997/traefik-github-oauth-plugin/internal/pkg/jwt"
+	gologger "github.com/apsdehal/go-logger"
 	"github.com/dghubble/sling"
 	"github.com/scylladb/go-set/strset"
 )
@@ -25,6 +27,7 @@ type Config struct {
 	ApiSecretKey string          `json:"api_secret_key,omitempty"`
 	AuthPath     string          `json:"auth_path,omitempty"`
 	JwtSecretKey string          `json:"jwt_secret_key,omitempty"`
+	LogLevel     string          `json:"log_level,omitempty"`
 	Whitelist    ConfigWhitelist `json:"whitelist,omitempty"`
 }
 
@@ -62,16 +65,39 @@ type TraefikGithubOauthMiddleware struct {
 	jwtSecretKey      string
 	whitelistIdSet    *strset.Set
 	whitelistLoginSet *strset.Set
+
+	logger *gologger.Logger
 }
 
 var _ http.Handler = (*TraefikGithubOauthMiddleware)(nil)
 
 // New creates a new TraefikGithubOauthMiddleware.
 func New(ctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
+	// region Setup logger
+	logLevel := gologger.InfoLevel
+	switch config.LogLevel {
+	case "DEBUG", "debug":
+		logLevel = gologger.DebugLevel
+	case "INFO", "info":
+		logLevel = gologger.InfoLevel
+	case "WARNING", "warning", "WARN", "warn":
+		logLevel = gologger.WarningLevel
+	case "ERROR", "error":
+		logLevel = gologger.ErrorLevel
+	}
+	logger, err := gologger.New("TraefikGithubOauthMiddleware", os.Stdout, 0)
+	if err != nil {
+		return nil, err
+	}
+	logger.SetLogLevel(logLevel)
+	logger.SetFormat("[%{module}] | %{level} | %{time} | %{message}")
+	// endregion Setup logger
+
 	authPath := config.AuthPath
 	if !strings.HasPrefix(authPath, "/") {
 		authPath = "/" + authPath
 	}
+
 	return &TraefikGithubOauthMiddleware{
 		ctx:  ctx,
 		next: next,
@@ -83,6 +109,8 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		jwtSecretKey:      config.JwtSecretKey,
 		whitelistIdSet:    strset.New(config.Whitelist.Ids...),
 		whitelistLoginSet: strset.New(config.Whitelist.Logins...),
+
+		logger: logger,
 	}, nil
 }
 
@@ -99,6 +127,7 @@ func (p *TraefikGithubOauthMiddleware) ServeHTTP(rw http.ResponseWriter, req *ht
 func (p *TraefikGithubOauthMiddleware) handleRequest(rw http.ResponseWriter, req *http.Request) {
 	user, err := p.getGitHubUserFromCookie(req)
 	if err != nil {
+		p.logger.Debugf("handleRequest: getGitHubUserFromCookie: %s\n", err.Error())
 		if req.Method == http.MethodGet {
 			p.redirectToOAuthPage(rw, req)
 		}
@@ -117,11 +146,13 @@ func (p *TraefikGithubOauthMiddleware) handleAuthRequest(rw http.ResponseWriter,
 	rid := req.URL.Query().Get(constant.QUERY_KEY_REQUEST_ID)
 	result, err := p.getAuthResult(rid)
 	if err != nil {
+		p.logger.Debugf("handleAuthRequest: getAuthResult: %s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	tokenString, err := jwt.GenerateJwtTokenString(result.GitHubUserID, result.GitHubUserLogin, p.jwtSecretKey)
 	if err != nil {
+		p.logger.Debugf("handleAuthRequest: GenerateJwtTokenString: %s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -136,6 +167,7 @@ func (p *TraefikGithubOauthMiddleware) handleAuthRequest(rw http.ResponseWriter,
 func (p *TraefikGithubOauthMiddleware) redirectToOAuthPage(rw http.ResponseWriter, req *http.Request) {
 	oAuthPageURL, err := p.generateOAuthPageURL(getRawRequestUrl(req), p.getAuthURL(req))
 	if err != nil {
+		p.logger.Debugf("redirectToOAuthPage: generateOAuthPageURL: %s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}

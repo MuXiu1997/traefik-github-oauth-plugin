@@ -14,6 +14,7 @@ testData:
   apiSecretKey: optional_secret_key_if_not_on_the_internal_network
   authPath: /_auth
   jwtSecretKey: optional_secret_key
+  logLevel: info
   whitelist:
     ids:
       - 996
