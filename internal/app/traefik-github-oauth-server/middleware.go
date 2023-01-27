@@ -40,8 +40,7 @@ func NewLoggerMiddleware(logger *zerolog.Logger) gin.HandlerFunc {
 		c.Next()
 
 		// Stop timer
-		timeStamp := time.Now()
-		latency := timeStamp.Sub(start)
+		end := time.Now()
 
 		clientIP := c.ClientIP()
 		method := c.Request.Method
@@ -54,13 +53,17 @@ func NewLoggerMiddleware(logger *zerolog.Logger) gin.HandlerFunc {
 
 		logger.Debug().
 			Str("module", "gin").
-			Time(zerolog.TimestampFieldName, timeStamp).
+			Time("time_start", start).
 			Int("status", statusCode).
-			Dur("latency", latency).
+			TimeDiff("took", end, start).
 			Str("client_ip", clientIP).
 			Str("method", method).
 			Str("path", path).
-			Str("error", errorMessage).
+			Func(func(e *zerolog.Event) {
+				if errorMessage != "" {
+					e.Str("error", errorMessage)
+				}
+			}).
 			Msg("")
 	}
 }
