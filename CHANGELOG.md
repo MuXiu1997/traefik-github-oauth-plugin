@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.2.0...v0.2.1) (2023-01-27)
+
+
+### Bug Fixes
+
+* **server:** Fix logger middleware log fields ([3ccd7e3](https://github.com/MuXiu1997/traefik-github-oauth-plugin/commit/3ccd7e38015495f2a91c31e2342d299baf86ae25))
+
 ## [0.2.0](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.1.1...v0.2.0) (2023-01-27)
 
 
