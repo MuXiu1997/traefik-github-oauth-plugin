@@ -151,13 +151,19 @@ func getAuthResult(app *server.App) gin.HandlerFunc {
 }
 
 func oAuthCodeToUser(ctx context.Context, oAuthConfig *oauth2.Config, code string) (*github.User, error) {
-	token, err := oAuthConfig.Exchange(ctx, code)
+	ctxExchange, cancelExchange := context.WithCancel(ctx)
+	defer cancelExchange()
+	token, err := oAuthConfig.Exchange(ctxExchange, code)
 	if err != nil {
 		return nil, err
 	}
-	gitHubApiHttpClient := oAuthConfig.Client(ctx, token)
+	ctxClient, cancelClient := context.WithCancel(ctx)
+	defer cancelClient()
+	gitHubApiHttpClient := oAuthConfig.Client(ctxClient, token)
 	gitHubApiClient := github.NewClient(gitHubApiHttpClient)
-	user, _, err := gitHubApiClient.Users.Get(ctx, "")
+	ctxGetUser, cancelGetUser := context.WithCancel(ctx)
+	defer cancelGetUser()
+	user, _, err := gitHubApiClient.Users.Get(ctxGetUser, "")
 	if err != nil {
 		return nil, err
 	}
