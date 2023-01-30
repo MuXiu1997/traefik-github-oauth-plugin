@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.2.1...v0.2.2) (2023-01-30)
+
+
+### Bug Fixes
+
+* **server:** fix incorrect use of context ([788a2b0](https://github.com/MuXiu1997/traefik-github-oauth-plugin/commit/788a2b0514bed2ae13252f60e104e9d3a4aa1ff2))
+
 ## [0.2.1](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.2.0...v0.2.1) (2023-01-27)
 
 
