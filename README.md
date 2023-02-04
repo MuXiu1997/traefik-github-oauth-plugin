@@ -6,7 +6,7 @@ The plugin is intended to be used as a replacement for the BasicAuth middleware,
 
 providing a more secure way for users to access protected routes.
 
-![process](https://user-images.githubusercontent.com/49554020/215049975-4de4ed06-939c-4565-91dc-58152e1b0e63.svg)
+![process](https://user-images.githubusercontent.com/49554020/216764214-4097f8da-33d2-49ef-9f12-0194d671bd92.svg)
 
 ## Quick Start (Docker)
 
