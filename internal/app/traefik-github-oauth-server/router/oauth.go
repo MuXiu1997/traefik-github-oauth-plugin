@@ -23,6 +23,7 @@ var (
 
 func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		setNoCacheHeaders(c)
 		body := model.RequestGenerateOAuthPageURL{}
 		err := c.ShouldBindJSON(&body)
 		if err != nil {
@@ -69,6 +70,7 @@ func generateOAuthPageURL(app *server.App) gin.HandlerFunc {
 
 func redirect(app *server.App) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		setNoCacheHeaders(c)
 		query := model.RequestRedirect{}
 		err := c.BindQuery(&query)
 		if err != nil {
@@ -120,6 +122,7 @@ func redirect(app *server.App) gin.HandlerFunc {
 
 func getAuthResult(app *server.App) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		setNoCacheHeaders(c)
 		query := model.RequestGetAuthResult{}
 		err := c.ShouldBindQuery(&query)
 		if err != nil {
@@ -180,4 +183,10 @@ func buildRedirectURI(apiBaseUrl, rid string) (string, error) {
 	redirectURLQuery.Set(constant.QUERY_KEY_REQUEST_ID, rid)
 	redirectURI.RawQuery = redirectURLQuery.Encode()
 	return redirectURI.String(), nil
+}
+
+func setNoCacheHeaders(c *gin.Context) {
+	c.Header(constant.HTTP_HEADER_CACHE_CONTROL, "no-cache, no-store, must-revalidate, private")
+	c.Header(constant.HTTP_HEADER_PRAGMA, "no-cache")
+	c.Header(constant.HTTP_HEADER_EXPIRES, "0")
 }

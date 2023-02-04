@@ -135,6 +135,7 @@ func (p *TraefikGithubOauthMiddleware) handleRequest(rw http.ResponseWriter, req
 		return
 	}
 	if !p.whitelistIdSet.Has(user.Id) && !p.whitelistLoginSet.Has(user.Login) {
+		setNoCacheHeaders(rw)
 		http.Error(rw, "not in whitelist", http.StatusForbidden)
 		return
 	}
@@ -143,6 +144,7 @@ func (p *TraefikGithubOauthMiddleware) handleRequest(rw http.ResponseWriter, req
 
 // handleAuthRequest
 func (p *TraefikGithubOauthMiddleware) handleAuthRequest(rw http.ResponseWriter, req *http.Request) {
+	setNoCacheHeaders(rw)
 	rid := req.URL.Query().Get(constant.QUERY_KEY_REQUEST_ID)
 	result, err := p.getAuthResult(rid)
 	if err != nil {
@@ -165,6 +167,7 @@ func (p *TraefikGithubOauthMiddleware) handleAuthRequest(rw http.ResponseWriter,
 }
 
 func (p *TraefikGithubOauthMiddleware) redirectToOAuthPage(rw http.ResponseWriter, req *http.Request) {
+	setNoCacheHeaders(rw)
 	oAuthPageURL, err := p.generateOAuthPageURL(getRawRequestUrl(req), p.getAuthURL(req))
 	if err != nil {
 		p.logger.Debugf("redirectToOAuthPage: generateOAuthPageURL: %s\n", err.Error())
@@ -241,6 +244,12 @@ func (p *TraefikGithubOauthMiddleware) getAuthURL(originalReq *http.Request) str
 	builder.WriteString(originalReq.Host)
 	builder.WriteString(p.authPath)
 	return builder.String()
+}
+
+func setNoCacheHeaders(rw http.ResponseWriter) {
+	rw.Header().Set(constant.HTTP_HEADER_CACHE_CONTROL, "no-cache, no-store, must-revalidate, private")
+	rw.Header().Set(constant.HTTP_HEADER_PRAGMA, "no-cache")
+	rw.Header().Set(constant.HTTP_HEADER_EXPIRES, "0")
 }
 
 func getRawRequestUrl(originalReq *http.Request) string {

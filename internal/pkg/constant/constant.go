@@ -15,6 +15,9 @@ const (
 	QUERY_KEY_REQUEST_ID   = "rid"
 
 	HTTP_HEADER_AUTHORIZATION = "Authorization"
+	HTTP_HEADER_CACHE_CONTROL = "Cache-Control"
+	HTTP_HEADER_PRAGMA        = "Pragma"
+	HTTP_HEADER_EXPIRES       = "Expires"
 
 	AUTHORIZATION_PREFIX_TOKEN = "token"
 )
