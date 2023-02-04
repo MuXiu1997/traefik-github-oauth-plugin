@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.2.2...v0.3.0) (2023-02-04)
+
+
+### Features
+
+* set no cache headers ([316878f](https://github.com/MuXiu1997/traefik-github-oauth-plugin/commit/316878f0d3f2e8fa04a8eb6697c3a924eecd66c5))
+
 ## [0.2.2](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.2.1...v0.2.2) (2023-01-30)
 
 
