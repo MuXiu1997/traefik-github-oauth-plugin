@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.3.0...v0.3.1) (2023-11-15)
+
+
+### Continuous Integration
+
+* build multi-platform Docker images using goreleaser ([fda884c](https://github.com/MuXiu1997/traefik-github-oauth-plugin/commit/fda884c3d6887dad11c05620d287d8e3aa9efe41)), closes [#22](https://github.com/MuXiu1997/traefik-github-oauth-plugin/issues/22)
+
 ## [0.3.0](https://github.com/MuXiu1997/traefik-github-oauth-plugin/compare/v0.2.2...v0.3.0) (2023-02-04)
 
 
