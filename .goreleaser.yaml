@@ -1,0 +1,114 @@
+# doc: https://goreleaser.com
+project_name: traefik-github-oauth-server
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: traefik-github-oauth-server
+    main: ./cmd/traefik-github-oauth-server
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - "386"
+      - arm64
+      - arm
+    ldflags:
+      - -s
+      - -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+      - -X main.builtBy=goreleaser
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+dockers:
+  - use: buildx
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "muxiu1997/{{ .ProjectName }}:latest-amd64"
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+  - use: buildx
+    goos: linux
+    goarch: "386"
+    image_templates:
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-i386"
+      - "muxiu1997/{{ .ProjectName }}:latest-i386"
+    build_flag_templates:
+      - "--platform=linux/386"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+  - use: buildx
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-arm64"
+      - "muxiu1997/{{ .ProjectName }}:latest-arm64"
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+  - use: buildx
+    goos: linux
+    goarch: arm
+    image_templates:
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-arm"
+      - "muxiu1997/{{ .ProjectName }}:latest-arm"
+    build_flag_templates:
+      - "--platform=linux/arm/v6"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+
+docker_manifests:
+  - name_template: "muxiu1997/{{ .ProjectName }}:{{ .Version }}"
+    image_templates:
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-i386"
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-arm64"
+      - "muxiu1997/{{ .ProjectName }}:{{ .Version }}-arm"
+  - name_template: "muxiu1997/{{ .ProjectName }}:latest"
+    image_templates:
+      - "muxiu1997/{{ .ProjectName }}:latest-amd64"
+      - "muxiu1997/{{ .ProjectName }}:latest-i386"
+      - "muxiu1997/{{ .ProjectName }}:latest-arm64"
+      - "muxiu1997/{{ .ProjectName }}:latest-arm"
+
+archives:
+  - id: tar.gz
+    format: tar.gz
+    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ if eq .Arch "386" }}i386{{ else }}{{ .Arch }}{{ end }}'
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+  - id: binary
+    format: binary
+    name_template: '{{ .ProjectName }}_{{ .Os }}_{{ if eq .Arch "386" }}i386{{ else }}{{ .Arch }}{{ end }}'
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Version }}-next"
