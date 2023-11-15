@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/wurmr/traefik-github-oauth-plugin/compare/v0.1.1...v0.2.0) (2023-11-15)
+
+
+### Features
+
+* add arm/v7 support ([1dbbb86](https://github.com/wurmr/traefik-github-oauth-plugin/commit/1dbbb8600ed0da6621e996991698469870a22bcd))
+
 ## [0.1.1](https://github.com/wurmr/traefik-github-oauth-plugin/compare/v0.3.0...v0.1.1) (2023-11-15)
 
 
