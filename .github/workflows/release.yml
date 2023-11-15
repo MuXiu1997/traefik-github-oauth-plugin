@@ -63,8 +63,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            muxiu1997/traefik-github-oauth-server:${{ steps.release.outputs.tag_name }}
-            muxiu1997/traefik-github-oauth-server:latest
+            ${{ vars.DOCKER_REPOSITORY }}:${{ steps.release.outputs.tag_name }}
+            ${{ vars.DOCKER_REPOSITORY }}:latest
 
       - name: Replace The Relative Path In The README.md
         if: ${{ steps.release.outputs.release_created }}
@@ -77,7 +77,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: muxiu1997/traefik-github-oauth-server
+          repository: ${{ vars.DOCKER_REPOSITORY }}
           short-description: server for traefik-github-oauth-plugin
           readme-filepath: docker.README.md
       # endregion Docker
